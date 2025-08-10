@@ -169,7 +169,6 @@
     "harmonica",
     "helmet",
     "house",
-    "ice cream stick",
     "ice cube",
     "ice pick",
     "incense holder",
@@ -258,7 +257,6 @@
     "pencil",
     "pencil holder",
     "pepper shaker",
-    "perfume",
     "phone",
     "photo album",
     "picture frame",
@@ -412,7 +410,8 @@
     "wrench",
     "wristwatch",
     "zebra",
-    "zipper"
+    "zipper",
+    "bow"
   ],
   "used": [
     "nail clippers",
@@ -431,7 +430,6 @@
     "quilt",
     "tube of lipstick",
     "screw",
-    "bow",
     "grocery list",
     "book of matches",
     "trucks",
@@ -448,6 +446,8 @@
     "candy wrapper",
     "stop sign",
     "plush octopus",
-    "light"
+    "light",
+    "perfume",
+    "ice cream stick"
   ]
 }
