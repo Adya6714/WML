@@ -3,14 +3,30 @@ import axios from 'axios';
 
 function ProfilePage({ friend }) {
   const [profile, setProfile] = useState(null);
+  const [busyTag, setBusyTag] = useState(null);
+
+  const loadProfile = async () => {
+    const res = await axios.get(`/profile/${friend}`);
+    setProfile(res.data);
+  };
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      const res = await axios.get(`/profile/${friend}`);
-      setProfile(res.data);
-    };
-    fetchProfile();
+    loadProfile();
   }, [friend]);
+
+  const removeTag = async (word) => {
+    try {
+      setBusyTag(word);
+      // Optimistic update
+      setProfile((p) => ({ ...p, assigned: p.assigned.filter((w) => w !== word) }));
+      await axios.post('/unassign-word', { person: friend, word });
+    } catch (e) {
+      // On failure, refetch to resync
+      await loadProfile();
+    } finally {
+      setBusyTag(null);
+    }
+  };
 
   if (!profile) return <p style={{ color: '#e2e8f0' }}>Loading profile...</p>;
 
@@ -31,13 +47,44 @@ function ProfilePage({ friend }) {
       </pre>
 
       <h3 style={{ color: '#7dd3fc' }}>📝 Tagged As:</h3>
-      <ul>
-        {profile.assigned.length > 0 ? (
-          profile.assigned.map((w, idx) => <li key={idx}>{w}</li>)
-        ) : (
-          <li>No tags yet!</li>
-        )}
-      </ul>
+      {profile.assigned.length > 0 ? (
+        <ul style={{ listStyle: 'none', padding: 0 }}>
+          {profile.assigned.map((w, idx) => (
+            <li key={idx} style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginBottom: '0.5rem'
+            }}>
+              <span style={{
+                background: 'rgba(125,211,252,0.15)',
+                border: '1px solid rgba(125,211,252,0.35)',
+                color: '#7dd3fc',
+                borderRadius: '999px',
+                padding: '0.2rem 0.6rem',
+                fontWeight: 600
+              }}>{w}</span>
+              <button
+                onClick={() => removeTag(w)}
+                disabled={busyTag === w}
+                style={{
+                  padding: '0.2rem 0.5rem',
+                  background: '#ef4444',
+                  border: 'none',
+                  borderRadius: '999px',
+                  color: '#fff',
+                  fontSize: '0.85rem',
+                  opacity: busyTag === w ? 0.6 : 1
+                }}
+              >
+                ✕ remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No tags yet!</p>
+      )}
 
       <button
         onClick={() => window.location.reload()}

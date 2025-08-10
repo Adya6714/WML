@@ -85,6 +85,38 @@ def assign_word():
         print(f"Error in /assign-word: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/unassign-word', methods=['POST'])
+def unassign_word():
+    try:
+        content = request.get_json(force=True)
+        person = content.get('person')
+        word = content.get('word')
+        if not person or not word:
+            return jsonify({"error": "'person' and 'word' are required"}), 400
+
+        friends = load_friends()
+        if person not in friends:
+            return jsonify({"error": f"Unknown person '{person}'"}), 404
+
+        assigned_list = friends[person].get('assigned', [])
+        if word in assigned_list:
+            assigned_list.remove(word)
+            friends[person]['assigned'] = assigned_list
+            save_friends(friends)
+
+        # Return the word to the available pool
+        words_data = load_words()
+        if word in words_data.get('used', []):
+            words_data['used'].remove(word)
+        if word not in words_data.get('unused', []):
+            words_data['unused'].append(word)
+        save_words(words_data)
+
+        return jsonify({"message": f"Removed '{word}' from {person} and returned to pool."})
+    except Exception as e:
+        print(f"Error in /unassign-word: {e}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/friends', methods=['GET'])
 def get_friends():
     try:
