@@ -12,11 +12,11 @@ root.render(
   </React.StrictMode>
 );
 
-<img
-  src={IMAGES[name]}
-  alt={name}
-  style={{ borderRadius: '50%', marginBottom: '0.5rem', width: '80px', height: '80px', objectFit: 'cover' }}
-/>
+// <img
+//   src={IMAGES[name]}
+//   alt={name}
+//   style={{ borderRadius: '50%', marginBottom: '0.5rem', width: '80px', height: '80px', objectFit: 'cover' }}
+// />
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))

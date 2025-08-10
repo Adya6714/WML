@@ -6,30 +6,31 @@ function ProfilePage({ friend }) {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const res = await axios.get(`http://localhost:5000/profile/${friend}`);
+      const res = await axios.get(`/profile/${friend}`);
       setProfile(res.data);
     };
     fetchProfile();
   }, [friend]);
 
-  if (!profile) return <p style={{ color: '#fff' }}>Loading profile...</p>;
+  if (!profile) return <p style={{ color: '#e2e8f0' }}>Loading profile...</p>;
 
   return (
-    <div style={{ marginTop: '2rem', padding: '1rem', color: '#fff' }}>
-      <h2 style={{ color: '#FF8C00' }}>{friend}’s Profile</h2>
+    <div style={{ marginTop: '2rem', padding: '1rem', color: '#e2e8f0' }}>
+      <h2 style={{ color: '#f59e0b', marginTop: 0 }}>{friend}’s Profile</h2>
 
       <pre style={{
         whiteSpace: 'pre-wrap',
-        background: '#1e1e1e',
+        background: '#0f172a',
         padding: '1rem',
         borderRadius: '12px',
         fontSize: '1rem',
-        marginBottom: '1rem'
+        marginBottom: '1rem',
+        border: '1px solid rgba(255,255,255,0.06)'
       }}>
         {profile.intro}
       </pre>
 
-      <h3 style={{ color: '#87CEEB' }}>📝 Tagged As:</h3>
+      <h3 style={{ color: '#7dd3fc' }}>📝 Tagged As:</h3>
       <ul>
         {profile.assigned.length > 0 ? (
           profile.assigned.map((w, idx) => <li key={idx}>{w}</li>)
@@ -43,11 +44,11 @@ function ProfilePage({ friend }) {
         style={{
           marginTop: '1rem',
           padding: '0.5rem 1rem',
-          background: '#FFD700',
+          background: '#facc15',
           border: 'none',
-          borderRadius: '6px',
+          borderRadius: '8px',
           fontWeight: 'bold',
-          color: '#000'
+          color: '#0b0f1a'
         }}
       >
         🔄 Tag Another Word
