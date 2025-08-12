@@ -12,168 +12,180 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 # Resolve data directory with optional override via env var
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_DATA_DIR = os.path.join(BACKEND_DIR, "data")
-DATA_DIR = os.environ.get("DATA_DIR")
+DATA_DIR_ENV = os.environ.get("DATA_DIR")
 
-if DATA_DIR:
-    os.makedirs(DATA_DIR, exist_ok=True)
-    WORDS_PATH = os.path.join(DATA_DIR, "words.json")
-    FRIENDS_PATH = os.path.join(DATA_DIR, "friends.json")
-    # Seed persistent disk on first run from repo defaults
-    if not os.path.exists(WORDS_PATH):
-        with open(os.path.join(DEFAULT_DATA_DIR, "words.json"), "r") as f_src:
-            with open(WORDS_PATH, "w") as f_dst:
-                json.dump(json.load(f_src), f_dst, indent=2)
-    if not os.path.exists(FRIENDS_PATH):
-        with open(os.path.join(DEFAULT_DATA_DIR, "friends.json"), "r") as f_src:
-            with open(FRIENDS_PATH, "w") as f_dst:
-                json.dump(json.load(f_src), f_dst, indent=2)
+USE_DATA_DIR = None
+if DATA_DIR_ENV:
+  try:
+    os.makedirs(DATA_DIR_ENV, exist_ok=True)
+    # Verify writable
+    test_path = os.path.join(DATA_DIR_ENV, ".writetest")
+    with open(test_path, "w") as f:
+      f.write("ok")
+    os.remove(test_path)
+    USE_DATA_DIR = DATA_DIR_ENV
+  except Exception as e:
+    print(f"DATA_DIR not usable ({DATA_DIR_ENV}). Falling back to repo data. Reason: {e}")
+
+if USE_DATA_DIR:
+  WORDS_PATH = os.path.join(USE_DATA_DIR, "words.json")
+  FRIENDS_PATH = os.path.join(USE_DATA_DIR, "friends.json")
+  # Seed persistent disk on first run from repo defaults
+  if not os.path.exists(WORDS_PATH):
+    with open(os.path.join(DEFAULT_DATA_DIR, "words.json"), "r") as f_src:
+      with open(WORDS_PATH, "w") as f_dst:
+        json.dump(json.load(f_src), f_dst, indent=2)
+  if not os.path.exists(FRIENDS_PATH):
+    with open(os.path.join(DEFAULT_DATA_DIR, "friends.json"), "r") as f_src:
+      with open(FRIENDS_PATH, "w") as f_dst:
+        json.dump(json.load(f_src), f_dst, indent=2)
 else:
-    WORDS_PATH = os.path.join(DEFAULT_DATA_DIR, "words.json")
-    FRIENDS_PATH = os.path.join(DEFAULT_DATA_DIR, "friends.json")
+  WORDS_PATH = os.path.join(DEFAULT_DATA_DIR, "words.json")
+  FRIENDS_PATH = os.path.join(DEFAULT_DATA_DIR, "friends.json")
 
 # Load word data
 def load_words():
-    with open(WORDS_PATH, "r") as f:
-        return json.load(f)
+  with open(WORDS_PATH, "r") as f:
+    return json.load(f)
 
 
 def save_words(data):
-    with open(WORDS_PATH, "w") as f:
-        json.dump(data, f, indent=2)
+  with open(WORDS_PATH, "w") as f:
+    json.dump(data, f, indent=2)
 
 # Load friends data
 def load_friends():
-    with open(FRIENDS_PATH, "r") as f:
-        return json.load(f)
+  with open(FRIENDS_PATH, "r") as f:
+    return json.load(f)
 
 
 def save_friends(data):
-    with open(FRIENDS_PATH, "w") as f:
-        json.dump(data, f, indent=2)
+  with open(FRIENDS_PATH, "w") as f:
+    json.dump(data, f, indent=2)
 
 @app.route('/random-word', methods=['GET'])
 def get_random_word():
-    try:
-        data = load_words()
-        if not data['unused']:
-            return jsonify({"word": None, "message": "No more words!"})
-        word = random.choice(data['unused'])
-        data['unused'].remove(word)
-        data['used'].append(word)
-        save_words(data)
-        return jsonify({"word": word})
-    except Exception as e:
-        print(f"Error in /random-word: {e}")
-        return jsonify({"error": str(e)}), 500
+  try:
+    data = load_words()
+    if not data['unused']:
+      return jsonify({"word": None, "message": "No more words!"})
+    word = random.choice(data['unused'])
+    data['unused'].remove(word)
+    data['used'].append(word)
+    save_words(data)
+    return jsonify({"word": word})
+  except Exception as e:
+    print(f"Error in /random-word: {e}")
+    return jsonify({"error": str(e)}), 500
 
 @app.route('/return-word', methods=['POST'])
 def return_word():
-    try:
-        content = request.get_json(force=True)
-        word = content.get('word')
-        if not word:
-            return jsonify({"error": "'word' is required"}), 400
+  try:
+    content = request.get_json(force=True)
+    word = content.get('word')
+    if not word:
+      return jsonify({"error": "'word' is required"}), 400
 
-        words_data = load_words()
-        if word in words_data['used']:
-            words_data['used'].remove(word)
-            if word not in words_data['unused']:
-                words_data['unused'].append(word)
-            save_words(words_data)
-            return jsonify({"message": f"Returned '{word}' to the pool."})
-        # If the word was not in used, treat as idempotent success
-        return jsonify({"message": f"'{word}' is already available."})
-    except Exception as e:
-        print(f"Error in /return-word: {e}")
-        return jsonify({"error": str(e)}), 500
+    words_data = load_words()
+    if word in words_data['used']:
+      words_data['used'].remove(word)
+      if word not in words_data['unused']:
+        words_data['unused'].append(word)
+      save_words(words_data)
+      return jsonify({"message": f"Returned '{word}' to the pool."})
+    # If the word was not in used, treat as idempotent success
+    return jsonify({"message": f"'{word}' is already available."})
+  except Exception as e:
+    print(f"Error in /return-word: {e}")
+    return jsonify({"error": str(e)}), 500
 
 @app.route('/assign-word', methods=['POST'])
 def assign_word():
-    try:
-        content = request.get_json(force=True)
-        person = content['person']
-        word = content['word']
+  try:
+    content = request.get_json(force=True)
+    person = content['person']
+    word = content['word']
 
-        friends = load_friends()
-        if person not in friends:
-            return jsonify({"error": f"Unknown person '{person}'"}), 404
-        if word not in friends[person]['assigned']:
-            friends[person]['assigned'].append(word)
-            save_friends(friends)
-        return jsonify({"message": f"{word} assigned to {person}!"})
-    except Exception as e:
-        print(f"Error in /assign-word: {e}")
-        return jsonify({"error": str(e)}), 500
+    friends = load_friends()
+    if person not in friends:
+      return jsonify({"error": f"Unknown person '{person}'"}), 404
+    if word not in friends[person]['assigned']:
+      friends[person]['assigned'].append(word)
+      save_friends(friends)
+    return jsonify({"message": f"{word} assigned to {person}!"})
+  except Exception as e:
+    print(f"Error in /assign-word: {e}")
+    return jsonify({"error": str(e)}), 500
 
 @app.route('/unassign-word', methods=['POST'])
 def unassign_word():
-    try:
-        content = request.get_json(force=True)
-        person = content.get('person')
-        word = content.get('word')
-        if not person or not word:
-            return jsonify({"error": "'person' and 'word' are required"}), 400
+  try:
+    content = request.get_json(force=True)
+    person = content.get('person')
+    word = content.get('word')
+    if not person or not word:
+      return jsonify({"error": "'person' and 'word' are required"}), 400
 
-        friends = load_friends()
-        if person not in friends:
-            return jsonify({"error": f"Unknown person '{person}'"}), 404
+    friends = load_friends()
+    if person not in friends:
+      return jsonify({"error": f"Unknown person '{person}'"}), 404
 
-        assigned_list = friends[person].get('assigned', [])
-        if word in assigned_list:
-            assigned_list.remove(word)
-            friends[person]['assigned'] = assigned_list
-            save_friends(friends)
+    assigned_list = friends[person].get('assigned', [])
+    if word in assigned_list:
+      assigned_list.remove(word)
+      friends[person]['assigned'] = assigned_list
+      save_friends(friends)
 
-        # Return the word to the available pool
-        words_data = load_words()
-        if word in words_data.get('used', []):
-            words_data['used'].remove(word)
-        if word not in words_data.get('unused', []):
-            words_data['unused'].append(word)
-        save_words(words_data)
+    # Return the word to the available pool
+    words_data = load_words()
+    if word in words_data.get('used', []):
+      words_data['used'].remove(word)
+    if word not in words_data.get('unused', []):
+      words_data['unused'].append(word)
+    save_words(words_data)
 
-        return jsonify({"message": f"Removed '{word}' from {person} and returned to pool."})
-    except Exception as e:
-        print(f"Error in /unassign-word: {e}")
-        return jsonify({"error": str(e)}), 500
+    return jsonify({"message": f"Removed '{word}' from {person} and returned to pool."})
+  except Exception as e:
+    print(f"Error in /unassign-word: {e}")
+    return jsonify({"error": str(e)}), 500
 
 @app.route('/friends', methods=['GET'])
 def get_friends():
-    try:
-        return jsonify(load_friends())
-    except Exception as e:
-        print(f"Error in /friends: {e}")
-        return jsonify({"error": str(e)}), 500
+  try:
+    return jsonify(load_friends())
+  except Exception as e:
+    print(f"Error in /friends: {e}")
+    return jsonify({"error": str(e)}), 500
 
 @app.route('/stats', methods=['GET'])
 def get_stats():
-    try:
-        words = load_words()
-        friends = load_friends()
-        friend_counts = {name: len(info.get('assigned', [])) for name, info in friends.items()}
-        return jsonify({
-            "unused_count": len(words.get('unused', [])),
-            "used_count": len(words.get('used', [])),
-            "friend_counts": friend_counts
-        })
-    except Exception as e:
-        print(f"Error in /stats: {e}")
-        return jsonify({"error": str(e)}), 500
+  try:
+    words = load_words()
+    friends = load_friends()
+    friend_counts = {name: len(info.get('assigned', [])) for name, info in friends.items()}
+    return jsonify({
+      "unused_count": len(words.get('unused', [])),
+      "used_count": len(words.get('used', [])),
+      "friend_counts": friend_counts
+    })
+  except Exception as e:
+    print(f"Error in /stats: {e}")
+    return jsonify({"error": str(e)}), 500
 
 @app.route('/profile/<name>', methods=['GET'])
 def get_profile(name):
-    try:
-        data = load_friends()
-        return jsonify(data.get(name, {}))
-    except Exception as e:
-        print(f"Error in /profile/{name}: {e}")
-        return jsonify({"error": str(e)}), 500
+  try:
+    data = load_friends()
+    return jsonify(data.get(name, {}))
+  except Exception as e:
+    print(f"Error in /profile/{name}: {e}")
+    return jsonify({"error": str(e)}), 500
 
 @app.route('/ping', methods=['GET'])
 @app.route('/health', methods=['GET'])
 def ping():
-    print("Ping/health endpoint was called")
-    return jsonify({"message": "pong"})
+  print("Ping/health endpoint was called")
+  return jsonify({"message": "pong"})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+  app.run(debug=True)

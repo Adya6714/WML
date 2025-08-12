@@ -1,1 +1,15 @@
- 
+services:
+  - type: web
+    name: wml-backend
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 2 -b 0.0.0.0:$PORT app:app
+    plan: free
+    envVars:
+      - key: DATA_DIR
+        value: /data
+    disks:
+      - name: data
+        mountPath: /data
+        sizeGB: 1 
