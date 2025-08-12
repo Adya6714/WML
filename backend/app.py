@@ -9,14 +9,33 @@ print("App started")
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-WORDS_PATH = os.path.join(BASE_DIR, "data", "words.json")
-FRIENDS_PATH = os.path.join(BASE_DIR, "data", "friends.json")
+# Resolve data directory with optional override via env var
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_DATA_DIR = os.path.join(BACKEND_DIR, "data")
+DATA_DIR = os.environ.get("DATA_DIR")
+
+if DATA_DIR:
+    os.makedirs(DATA_DIR, exist_ok=True)
+    WORDS_PATH = os.path.join(DATA_DIR, "words.json")
+    FRIENDS_PATH = os.path.join(DATA_DIR, "friends.json")
+    # Seed persistent disk on first run from repo defaults
+    if not os.path.exists(WORDS_PATH):
+        with open(os.path.join(DEFAULT_DATA_DIR, "words.json"), "r") as f_src:
+            with open(WORDS_PATH, "w") as f_dst:
+                json.dump(json.load(f_src), f_dst, indent=2)
+    if not os.path.exists(FRIENDS_PATH):
+        with open(os.path.join(DEFAULT_DATA_DIR, "friends.json"), "r") as f_src:
+            with open(FRIENDS_PATH, "w") as f_dst:
+                json.dump(json.load(f_src), f_dst, indent=2)
+else:
+    WORDS_PATH = os.path.join(DEFAULT_DATA_DIR, "words.json")
+    FRIENDS_PATH = os.path.join(DEFAULT_DATA_DIR, "friends.json")
 
 # Load word data
 def load_words():
     with open(WORDS_PATH, "r") as f:
         return json.load(f)
+
 
 def save_words(data):
     with open(WORDS_PATH, "w") as f:
@@ -26,6 +45,7 @@ def save_words(data):
 def load_friends():
     with open(FRIENDS_PATH, "r") as f:
         return json.load(f)
+
 
 def save_friends(data):
     with open(FRIENDS_PATH, "w") as f:

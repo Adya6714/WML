@@ -17,23 +17,30 @@ import React from 'react';
 //   Adya: adyaImg
 // };
 
-function FriendCard({ name, onClick }) {
+function FriendCard({ name, onClick, disabled = false }) {
   return (
-    <div
+    <button
       onClick={onClick}
+      disabled={disabled}
+      aria-label={`Choose ${name}`}
       style={{
         margin: '0.75rem',
         padding: '0.9rem',
         border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: '14px',
-        width: '120px',
+        width: '140px',
         textAlign: 'center',
-        cursor: 'pointer',
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
-        transition: 'transform 0.18s ease, box-shadow 0.18s ease',
-        color: '#fff'
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        background: disabled
+          ? 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))'
+          : 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
+        transition: 'transform 0.18s ease, box-shadow 0.18s ease, opacity 0.2s ease',
+        color: '#fff',
+        outline: 'none',
+        opacity: disabled ? 0.6 : 1
       }}
       onMouseEnter={(e) => {
+        if (disabled) return;
         e.currentTarget.style.transform = 'translateY(-2px) scale(1.03)';
         e.currentTarget.style.boxShadow = '0 8px 22px rgba(0,0,0,0.35)';
       }}
@@ -48,7 +55,7 @@ function FriendCard({ name, onClick }) {
         style={{ borderRadius: '50%', marginBottom: '0.5rem', border: '2px solid rgba(255,255,255,0.08)' }}
       />
       <div style={{ fontWeight: 700, color: '#facc15', letterSpacing: '0.2px' }}>{name}</div>
-    </div>
+    </button>
   );
 }
 
