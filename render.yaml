@@ -8,8 +8,8 @@ services:
     plan: free
     envVars:
       - key: DATA_DIR
-        value: /data
+        value: /var/data
     disks:
       - name: data
-        mountPath: /data
+        mountPath: /var/data
         sizeGB: 1 
